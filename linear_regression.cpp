@@ -440,6 +440,103 @@ void getXY(matrix &data, matrix &X, int numx, matrix &Y, int numy)
     }
 }
 
+// визначення y^
+double f(matrix A, dvec x)
+{
+    return A(0)*x;
+}
+
+// визначення J (помилка = середнє квадратичне відхилення y від y^)
+double J(matrix A, matrix X, matrix Y)
+{
+    double result = 0;
+    int m = X.getrows();
+
+    for(int i=0;i<m;i++)
+        result += pow( Y[i][0] - f(A, X[i]), 2);
+
+    return (1.0/(2*m))*result;
+}
+
+// градієнтний спуск
+matrix grad_descent(matrix X, matrix Y, double alpha=0.01, int epochs = 10, double epsilon=0.0001, bool out=false)
+{
+    matrix A(X.getcols(), 1); // w1, w2, ... , wn, b;
+    int n=X.getcols(),
+        m=X.getrows();
+
+    matrix grad = A;
+    double error_start, error_end;
+
+    do
+    {
+        error_start = J(A, X, Y);
+        for(int k=0;k<n;k++)
+        {
+            grad[k][0]=0;
+            for(int i=0;i<m;i++)
+                grad[k][0] += (f(A, X[i]) - Y[i][0]) * X[i][k];
+        }
+        A = A - (alpha/m) * grad;
+        error_end = J(A, X, Y);
+        if(error_end<error_start)
+            break;
+        else
+        {
+            A = matrix(X.getcols(), 1);
+            alpha *= 0.9;
+            if(out)
+                cout<<"Крок скориговано у "<<alpha<<endl;
+        }
+    }
+    while(error_end>error_start);
+
+    for(int num=0;num<epochs;num++)
+    {
+        error_start = error_end;
+        for(int k=0;k<n;k++)
+        {
+            grad[k][0]=0;
+            for(int i=0;i<m;i++)
+                grad[k][0] += (f(A, X[i]) - Y[i][0]) * X[i][k];
+        }
+        A = A - (alpha/m) * grad;
+        error_end = J(A, X, Y);
+        if(out)
+            cout<<"epoch = "<<(num+1)<<", J = " << error_end <<endl;
+        if(abs(error_end - error_start) < epsilon)
+            break;
+        if(error_end>error_start)
+            alpha *= 0.9;
+    }
+
+    return A;
+}
+
+// normalize by mean
+matrix norm_mean(matrix X)
+{
+    int m = X.getrows();
+    matrix X_n=X;
+
+    for(int i=0;i<X.getcols()-1;i++)
+    {
+        double min_col=X[0][i], max_col=X[0][i], ave_col=0;
+        for(int j=0;j<X.getrows();j++)
+        {
+            ave_col += X[j][i];
+            if(min_col>X[j][i])
+                min_col = X[j][i];
+            if(max_col<X[j][i])
+                max_col = X[j][i];
+        }
+        ave_col /= m;
+        for(int j=0;j<X_n.getrows();j++)
+            X_n[j][i] = (X[j][i] - ave_col) / (max_col - min_col);
+    }
+    return X_n;
+}
+
 
 int main()
 {
@@ -476,28 +573,19 @@ int main()
     matrix data(num_Instances, num_Features_x+num_Features_y);
     f>>data;
     matrix X, Y;
+
     getXY(data, X, num_Features_x, Y, num_Features_y);
 
-    //cout<<"X"<<endl<<X<<endl;
-    //cout<<"Y"<<endl<<Y<<endl;
+    matrix X_n = norm_mean(X);
 
-    matrix XT = ~X; // транспонування
-    //matrix C = XT * X;
-    //cout<<"XT*X"<<endl<<C<<endl;
-    matrix A=((XT*X)^(-1))*XT*Y;
-    cout<<"A"<<endl<<A<<endl;
+    matrix XT = ~X_n; // транспонування
+    matrix A=((XT*X_n)^(-1))*XT*Y;
+    cout<<"A (точне)"<<endl<<A<<endl;
+    cout<<"J = "<<J(A, X_n, Y)<<endl;
 
-/*
-    dvec a=X[2];
-    dvec b=X[0];
-    cout<<"a   = "<<a<<endl;
-    cout<<"b   = "<<b<<endl;
-    dvec c=a-b;
-    cout<<"a-b = "<<c<<endl;
-    cout<<"c*2 = "<<c*2<<endl;
-    cout<<"a*b = "<<a*b<<endl;
-    cout<<"|a| = "<<abs(a)<<endl;
-*/
+    matrix A_g=grad_descent(X_n, Y, 1, 30000, 0.00001, true);
+    cout<<"A (grad)"<<endl<<A_g<<endl;
+    cout<<"J = "<<J(A_g, X_n, Y)<<endl;
 
     //cout<<"Воно працює"<<endl;
     return 0;
