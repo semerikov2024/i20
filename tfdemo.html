@@ -1,0 +1,54 @@
+<!doctype html>
+
+<html>
+	<head>
+		<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.12.0/dist/tf.min.js"></script>
+	</head>
+	<body>
+		<script>
+		async function start() {
+			const train_data = {
+				x: [4, 9, -5, 2, -1],
+				y: [
+				23,
+				9,
+				7,
+				-3,
+				-14]
+			};		
+			
+			const train_data_tensors = {
+				x: tf.tensor2d(train_data.x, [5, 1]),
+				y: tf.tensor2d(train_data.y, [5, 1]),
+			};
+
+			//console.log("x = ", train_data_tensors.x);
+			//console.log("y = ", train_data_tensors.y);
+			train_data_tensors.x.print();
+			train_data_tensors.y.print();
+
+			const model = tf.sequential();
+			model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+
+			model.compile({optimizer: "sgd", loss: "meanAbsoluteError"});
+
+			await model.fit(train_data_tensors.x, train_data_tensors.y, 
+				{epochs: 10000});
+
+			const res = model.evaluate(train_data_tensors.x, train_data_tensors.y);
+			res.print();
+			const res2 = model.predict(train_data_tensors.x);
+			console.log("y_обч = ");
+			res2.print();
+
+			model.summary();
+
+			const saveResults = await model.save('downloads://model-1');
+
+		}
+
+		start();
+		</script>
+	</body>
+</html>
+
