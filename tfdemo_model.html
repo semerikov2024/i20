@@ -187,9 +187,10 @@
         0.        , 0.        , 0.        , 0.        , 0.        ,
         0.        , 0.        , 0.        ]];
 
-			X_train_tensor = tf.tensor2d(X_train, [1, 28, 28]);
+			X_train_tensor = tf.tensor2d(X_train, [28, 28]);
+			const X_train_tensor_batched = tf.expandDims(X_train_tensor, 0);
 
-			const res2 = model.predict(X_train_tensor);
+			const res2 = model.predict(X_train_tensor_batched);
 			console.log("y_обч = ");
 			res2.print();
 
